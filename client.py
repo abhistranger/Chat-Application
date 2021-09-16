@@ -7,7 +7,7 @@ def registrationcs(socketn, username):
     socketn.send(str.encode('REGISTER TOSEND '+username+"\n\n"))
     data_recv = socketn.recv(1024)
     while(not data_recv):
-        data_recv = connection.recv(1024)
+        data_recv = socketn.recv(1024)
     data = data_recv.decode('utf-8')
     if(data[:6]=="ERROR"):
         print(data)
@@ -19,7 +19,7 @@ def registrationsc(socketn, username):
     socketn.send(str.encode('REGISTER TORECV '+username+"\n\n"))
     data_recv = socketn.recv(1024)
     while(not data_recv):
-        data_recv = connection.recv(1024)
+        data_recv = socketn.recv(1024)
     data = data_recv.decode('utf-8')
     if(data[:6]=="ERROR"):
         print(data)
@@ -36,6 +36,9 @@ def parse_send_message(mess):
             message_list.append(mess[1:i])
             break
     message_list.append(mess[i+1:])
+    if(len(message_list)!=2):
+        return (False, [])
+    #print(message_list)
     return (True, message_list)
 
 
@@ -44,9 +47,9 @@ def send_to_server(connection):
     while True:
         a= sys.stdin.readline()
         if(a[-1]=="\n"):
-            (correct, message_list) = parse_send_message(a)
+            (correct, message_list) = parse_send_message(a[:-1])
             if(correct):
-                message = "SEND "+message_list[0]+" Content-length: "+ str(len(message_list[1]))+" "+message_list[1]
+                message = "SEND "+message_list[0]+"\nContent-length: "+ str(len(message_list[1]))+"\n\n"+message_list[1]
                 #print(message)
                 connection.sendall(str.encode(message))
                 data_recv = connection.recv(2048)
@@ -67,26 +70,19 @@ def send_to_server(connection):
 
 
 def forward_data_check(data):
-    # FORWARD [sender username] Content-length: [length] [message of length given in the header above]
-    correct = True
-    data_list = []
-    st=0
-    count=0
-    for i in range(len(data)):
-        if(data[i]==" "):
-            count+=1
-            data_list.append(data[st:i])
-            st=i+1
-            if(count==4):
-                break
-    if(len(data_list)!=4 or data_list[0]!="FORWARD" or data_list[2]!="Content-length:" or (not data_list[3].isnumeric())):
-        correct = False
-        return (correct,[])
-    if((len(data)-st)!=int(data_list[3])):
-        correct = False
-        return (correct,[])
-    data_list.append(data[st:])
-    return (correct, data_list)
+    # FORWARD [sender username]\nContent-length: [length]\n\n[message of length given in the header above]
+    data_list = data.split("\n")
+    if(len(data_list)!=4):
+        return (False,[])
+    sr_list = data_list[0].split(" ")
+    cl_list = data_list[1].split(" ")
+    if(len(sr_list)!=2 or len(cl_list)!=2 or sr_list[0]!="FORWARD" or cl_list[0]!="Content-length:" or (not cl_list[1].isnumeric()) or int(cl_list[1])!=len(data_list[-1])):
+        return (False,[])
+    data_list[1]=sr_list[1]
+    data_list[2]=cl_list[1]
+    #print(data_list)
+    return (True, data_list)
+
 
 def forward_from_server(connection):
     while True:
@@ -122,8 +118,8 @@ if __name__ == '__main__':
         print(host_name)
         sys.exit(1)'''
 
-    port_number1 = 1234
-    port_number2 = 1234
+    port_number1 = 8001
+    port_number2 = 8001
 
     socketcs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socketsc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

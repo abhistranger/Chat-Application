@@ -4,7 +4,8 @@ from _thread import *
 import threading
 
 host = '127.0.0.1'  # Standard loopback interface address (localhost)
-port_number = 1234  # Port to listen on (non-privileged ports are > 1023)
+#host = '10.0.2.15'
+port_number = 8001  # Port to listen on (non-privileged ports are > 1023)
 #thread_count = 0
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 username_list = {}
@@ -14,21 +15,17 @@ def username_check(username):
     return username.isalnum()
 
 def server_data_check(data):
-    # SEND [recipient username] Content-length: [length] [message of length given in the header above]
-    data_list = []
-    st=0
-    count = 0
-    for i in range(len(data)):
-        if(data[i]==" "):
-            count+=1
-            data_list.append(data[st:i])
-            st=i+1
-            if(count==4):
-                break
-    if(data_list[0]!="SEND" or data_list[2]!="Content-length:" or (len(data)-st)!=int(data_list[3])):
-        return (False, data_list)
-    data_list.append(data[st:])
-    print(data_list)
+    # SEND [recipient username]\nContent-length: [length]\n\n[message of length given in the header above]
+    data_list = data.split("\n")
+    if(len(data_list)!=4):
+        return (False,[])
+    sr_list = data_list[0].split(" ")
+    cl_list = data_list[1].split(" ")
+    if(len(sr_list)!=2 or len(cl_list)!=2 or sr_list[0]!="SEND" or cl_list[0]!="Content-length:" or (not cl_list[1].isnumeric()) or int(cl_list[1])!=len(data_list[-1])):
+        return (False,[])
+    data_list[1]=sr_list[1]
+    data_list[2]=cl_list[1]
+    #print(data_list)
     return (True, data_list)
 
 def brodcast_message(connection, from_username, message_to_sent):
@@ -92,11 +89,11 @@ def threaded_client(connection):
                 if(correct):
                     #FORWARD [sender username] Content-length: [length] [message of length given in the header above]
                     if(data_list[1]=="all"):
-                        message_to_sent = "FORWARD "+username+" Content-length: "+data_list[3]+" "+data_list[4]
+                        message_to_sent = "FORWARD "+username+"\nContent-length: "+data_list[2]+"\n\n"+data_list[3]
                         start_new_thread(brodcast_message, (connection, username, message_to_sent,))
                     else:
                         if data_list[1] in username_list:
-                            reply = "FORWARD "+username+" Content-length: "+data_list[3]+" "+data_list[4]
+                            reply = "FORWARD "+username+"\nContent-length: "+data_list[2]+"\n\n"+data_list[3]
                             username_list[data_list[1]].sendall(str.encode(reply))
                             data_recv = username_list[data_list[1]].recv(2048)
                             while(not data_recv):
