@@ -2,9 +2,6 @@ import socket
 import sys
 from _thread import *
 import threading
-#from signal import signal, SIGPIPE, SIG_DFL 
-#Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
-#signal(SIGPIPE,SIG_DFL)
 
 def registrationcs(socketn, username):
     socketn.send(str.encode('REGISTER TOSEND '+username+"\n\n"))
@@ -113,29 +110,35 @@ if __name__ == '__main__':
         print("Syntax : client.py <username> <host name>")
         sys.exit(1)
     username = sys.argv[1]
-    host_name = sys.argv[2]
-    #host_ip_add = sys.argv[2]
+    #host_name = sys.argv[2]
+    host_ip_add = sys.argv[2]
 
-    host_ip_add = None
+    '''host_ip_add = None
     try:
         host_ip_add = socket.gethostbyname(host_name)
     except socket.gaierror:
         # wrong host name
         print(f'Invalid host name: ', end='')
         print(host_name)
-        sys.exit(1)
+        sys.exit(1)'''
 
-    port_number1 = 40001
-    port_number2 = 40001
+    port_number1 = 1234
+    port_number2 = 1234
 
     socketcs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socketsc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    try:
+        socketcs.connect((host_ip_add, port_number1))
+    except socket.error as e:
+        print(str(e))
+        sys.exit(1)
 
     try:
         socketsc.connect((host_ip_add, port_number2))
     except socket.error as e:
         print(str(e))
+        sys.exit(1)
 
     registrationcs(socketcs, username)
     registrationsc(socketsc, username)

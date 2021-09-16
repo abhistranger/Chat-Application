@@ -53,5 +53,6 @@ try:
     socketa.connect((host_ip, port))
 except socket.error as e:
     print(str(e))
+    exit(1)
 
 send_to_server(socketa)

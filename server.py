@@ -2,12 +2,9 @@ import socket
 import sys
 from _thread import *
 import threading
-#from signal import signal, SIGPIPE, SIG_DFL 
-#Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
-#signal(SIGPIPE,SIG_DFL)
 
 host = '127.0.0.1'  # Standard loopback interface address (localhost)
-port_number = 40001  # Port to listen on (non-privileged ports are > 1023)
+port_number = 1234  # Port to listen on (non-privileged ports are > 1023)
 #thread_count = 0
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 username_list = {}
