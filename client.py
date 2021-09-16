@@ -2,9 +2,12 @@ import socket
 import sys
 from _thread import *
 import threading
+#from signal import signal, SIGPIPE, SIG_DFL 
+#Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
+#signal(SIGPIPE,SIG_DFL)
 
 def registrationcs(socketn, username):
-    socketn.sendall(str.encode('REGISTER TOSEND '+username+"\n\n"))
+    socketn.send(str.encode('REGISTER TOSEND '+username+"\n\n"))
     data_recv = socketn.recv(1024)
     while(not data_recv):
         data_recv = connection.recv(1024)
@@ -16,7 +19,7 @@ def registrationcs(socketn, username):
     return
 
 def registrationsc(socketn, username):
-    socketn.sendall(str.encode('REGISTER TORECV '+username+"\n\n"))
+    socketn.send(str.encode('REGISTER TORECV '+username+"\n\n"))
     data_recv = socketn.recv(1024)
     while(not data_recv):
         data_recv = connection.recv(1024)
@@ -111,6 +114,7 @@ if __name__ == '__main__':
         sys.exit(1)
     username = sys.argv[1]
     host_name = sys.argv[2]
+    #host_ip_add = sys.argv[2]
 
     host_ip_add = None
     try:
@@ -127,10 +131,6 @@ if __name__ == '__main__':
     socketcs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socketsc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    try:
-        socketcs.connect((host_ip_add, port_number1))
-    except socket.error as e:
-        print(str(e))
 
     try:
         socketsc.connect((host_ip_add, port_number2))
@@ -139,6 +139,7 @@ if __name__ == '__main__':
 
     registrationcs(socketcs, username)
     registrationsc(socketsc, username)
+    print("Registered Successfully")
 
     thread1 = threading.Thread(target = send_to_server, args=(socketcs,))
     thread2 = threading.Thread(target = forward_from_server, args = (socketsc,))
