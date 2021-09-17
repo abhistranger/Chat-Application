@@ -1,6 +1,5 @@
 import socket
 import sys
-from _thread import *
 import threading
 
 def registrationcs(socketn, username):
@@ -9,11 +8,11 @@ def registrationcs(socketn, username):
     while(not data_recv):
         data_recv = socketn.recv(1024)
     data = data_recv.decode('utf-8')
-    if(data[:6]=="ERROR"):
+    if(data[:5]=="ERROR"):
         print(data)
-        sys.exit(1)
+        return False
     print(data)
-    return
+    return True
 
 def registrationsc(socketn, username):
     socketn.send(str.encode('REGISTER TORECV '+username+"\n\n"))
@@ -21,11 +20,11 @@ def registrationsc(socketn, username):
     while(not data_recv):
         data_recv = socketn.recv(1024)
     data = data_recv.decode('utf-8')
-    if(data[:6]=="ERROR"):
+    if(data[:5]=="ERROR"):
         print(data)
-        sys.exit(1)
+        return False
     print(data)
-    return
+    return True
 
 def parse_send_message(mess):
     if(mess[0]!="@"):
@@ -60,7 +59,7 @@ def send_to_server(connection):
                 if(data[:9]=="ERROR 103"):
                     print(data)
                     connection.close()
-                    return
+                    sys.exit()
                 elif(data[:5]=="ERROR"):
                     print(data)
                 else:
@@ -97,14 +96,14 @@ def forward_from_server(connection):
             else:
                 reply = "ERROR 103 Header Incomplete\n\n"
                 connection.sendall(str.encode(reply))
-                #connection.close()
-                #return     
+                connection.close()
+                sys.exit()     
 
 
 if __name__ == '__main__':
     if(len(sys.argv)) <= 2:
         print("Syntax : client.py <username> <host name>")
-        sys.exit(1)
+        sys.exit()
     username = sys.argv[1]
     #host_name = sys.argv[2]
     host_ip_add = sys.argv[2]
@@ -118,8 +117,8 @@ if __name__ == '__main__':
         print(host_name)
         sys.exit(1)'''
 
-    port_number1 = 8001
-    port_number2 = 8001
+    port_number1 = 8006
+    port_number2 = 8006
 
     socketcs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socketsc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -128,22 +127,28 @@ if __name__ == '__main__':
         socketcs.connect((host_ip_add, port_number1))
     except socket.error as e:
         print(str(e))
-        sys.exit(1)
+        sys.exit()
 
     try:
         socketsc.connect((host_ip_add, port_number2))
     except socket.error as e:
         print(str(e))
-        sys.exit(1)
+        sys.exit()
 
-    registrationcs(socketcs, username)
-    registrationsc(socketsc, username)
+    flag = registrationcs(socketcs, username)
+    if(flag == False):
+        socketcs.close()
+        socketsc.close()
+        sys.exit()
+    flag = registrationsc(socketsc, username)
+    if(flag == False):
+        socketsc.close()
+        socketcs.close()
+        sys.exit()
     print("Registered Successfully")
 
     thread1 = threading.Thread(target = send_to_server, args=(socketcs,))
     thread2 = threading.Thread(target = forward_from_server, args = (socketsc,))
-    #start_new_thread(send_to_server, (socketcs, ))
-    #start_new_thread(forward_from_server, (socketsc, ))
 
     thread1.start()
     thread2.start()

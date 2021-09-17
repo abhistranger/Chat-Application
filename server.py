@@ -5,13 +5,15 @@ import threading
 
 host = '127.0.0.1'  # Standard loopback interface address (localhost)
 #host = '10.0.2.15'
-port_number = 8001  # Port to listen on (non-privileged ports are > 1023)
+port_number = 8006  # Port to listen on (non-privileged ports are > 1023)
 #thread_count = 0
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 username_list = {}
 user_message_list = {}
 
 def username_check(username):
+    if username == "all":
+        return False
     return username.isalnum()
 
 def server_data_check(data):
@@ -44,6 +46,7 @@ def brodcast_message(connection, from_username, message_to_sent):
                 sucess = False
                 break
     if(sucess):
+        print("RECEIVED "+from_username+"\n\n")
         connection.sendall(str.encode("SEND all\n\n"))
     return
 
@@ -90,14 +93,13 @@ def threaded_client(connection):
                     #FORWARD [sender username] Content-length: [length] [message of length given in the header above]
                     if(data_list[1]=="all"):
                         message_to_sent = "FORWARD "+username+"\nContent-length: "+data_list[2]+"\n\n"+data_list[3]
-                        start_new_thread(brodcast_message, (connection, username, message_to_sent,))
+                        brodcast_message(connection, username, message_to_sent)
                     else:
                         if data_list[1] in username_list:
                             reply = "FORWARD "+username+"\nContent-length: "+data_list[2]+"\n\n"+data_list[3]
                             username_list[data_list[1]].sendall(str.encode(reply))
                             data_recv = username_list[data_list[1]].recv(2048)
                             while(not data_recv):
-                                #username_list[data_list[1]].sendall(str.encode(reply))
                                 data_recv = username_list[data_list[1]].recv(2048)
                             data = data_recv.decode('utf-8')
                             if(data[:9]=="ERROR 103"):
@@ -105,7 +107,7 @@ def threaded_client(connection):
                                 connection.sendall(str.encode(reply))
                                 username_list[data_list[1]].close()
                                 del username_list[data_list[1]]
-                                ####doubt###
+                                return
                             else:
                                 print(data)
                                 connection.sendall(str.encode("SEND "+data_list[1]+"\n\n"))
@@ -117,6 +119,7 @@ def threaded_client(connection):
                     connection.sendall(str.encode(reply))
                     connection.close()
                     if username in username_list:
+                        username_list[username].close()
                         del username_list[username]
                     return
         ###
@@ -144,5 +147,3 @@ if __name__ == '__main__':
         print('Connected to: ' + address[0] + ':' + str(address[1]))
         start_new_thread(threaded_client, (client, ))
         #thread_count += 1
-
-    server_socket.close()
