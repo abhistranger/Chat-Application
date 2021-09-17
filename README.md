@@ -11,4 +11,4 @@ python3 server.py
 python3 client.py <username> <server_ip>
 ```
 
-Note: Username should consist of chars from [A-z, a-z, 0-9]
+Note: Username should consist of chars from [A-Z, a-z, 0-9]
